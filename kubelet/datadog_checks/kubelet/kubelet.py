@@ -309,11 +309,12 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
                 c_name = ctr.get('name', '')
                 cid = None
-
+                state = None
                 for ctr_status in pod['status'].get('containerStatuses', []):
                     if ctr_status.get('name') == c_name:
                         # it is already prefixed with 'runtime://'
                         cid = ctr_status.get('containerID')
+                        state = 'active' if ctr_status.get('state').get('running') else 'inactive'
                         break
                 if not cid:
                     continue
@@ -323,6 +324,8 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                     continue
 
                 tags = get_tags('%s' % cid, True) + instance_tags
+                if state:
+                    tags.append('container_state:%s' % state)
 
                 try:
                     for resource, value_str in ctr.get('resources', {}).get('requests', {}).iteritems():
